@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+
+  <script>
+    // 函数curry化
+    // 针对数据一直在变化，模板却不怎么变的情况下
+    // 这个函数在Vue编译模板的时候生成了
+    // createGetValueByPath函数在Vue 编译模板的时候就生成了
+    function createGetValueByPath(path) {
+      let paths = path.split(".");
+      // 先取得obj里面的xxx，再取得结果中的yyy，最后取得结果中的zzz
+      return function getValueByPath(obj) {
+        let res = obj;
+        let prop;
+        while ((prop = paths.shift())) {
+          res = res[prop];
+        }
+        return res;
+      };
+    }
+    let getValueByPath = createGetValueByPath("a.b.c.d");
+
+    var o = {
+      a: {
+        b: {
+          c: {
+            d: {
+              e: "正确了",
+            },
+          },
+        },
+      },
+    };
+
+    var res = getValueByPath(o);
+    // var res = getValueByPath(o)
+    console.log(res);
+  </script>
+</html>
