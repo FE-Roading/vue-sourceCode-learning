@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      let data = {
+        name: "czh",
+        age: 25,
+        courses: [
+          {
+            name: "java",
+          },
+          {
+            name: "javascript",
+          },
+          {
+            name: "python",
+          },
+        ],
+      };
+
+      function defineReactive(target, key, value, enumerable) {
+        // 函数内部是一个局部作用域，这个value只在函数内使用的变量
+        // 这只是一个简化的版本
+
+        if (
+          typeof value === "object" &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          // 为非数组的引用类型
+          reactify(value);
+        }
+
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumberable: !!enumerable,
+
+          get() {
+            console.log(`读取 o的${key}属性 `);
+
+            return value;
+          },
+          set(newVal) {
+            console.log(`设置 o的${key}属性 `);
+            value = newVal;
+          },
+        });
+      }
+
+      // 将对象o响应式化
+      function reactify(o) {
+        let keys = Object.keys(o);
+
+        for (let i = 0; i < keys.length; i++) {
+          // 属性名
+          let key = keys[i];
+          let value = o[key];
+          // 判断属性是不是引用类型， 是不是数组
+          // 如果是引用类型，就要递归
+          // 如果不是引用类型， 需要使用defineReactive 将其变成响应式
+          // 如果是引用类型， 还是需要是用defineReactive将其变成响应式
+          // 如果是数组，就要循环数组，将里面的元素进行响应化
+          if (Array.isArray(value)) {
+            // 是数组
+            // 给数组的方法添加响应式
+            value.__proto__ = array_methods;
+            for (let j = 0; j < value.length; j++) {
+              // TO-DO 如果成员也是数组怎么办？
+              reactify(value[j]);
+            }
+          } else {
+            // 对象，或者是指类型
+            defineReactive(o, key, value, true);
+          }
+        }
+      }
+
+      // 对于对象，可以使用递归响应式化， 但是数组我们也需要处理
+      // push,pop,shift,unshift,reverse,sort,splice
+
+      // 1 在改变数组的数据的时候，要发出通知
+      // vue2中的缺陷，数组发生变化，设置length没法通知
+      // vue3中使用proxy语法来解决这个问题
+      // 2 加入的元素也要是响应式的
+
+      // 直接修改prototype不行，所有的数组都会变化
+      // 修改要进行响应式化的数组的原型 (__proto__);
+
+      let ARRAY_METHOD = [
+        "push",
+        "pop",
+        "shift",
+        "unshift",
+        "reverse",
+        "sort",
+        "splice",
+      ];
+      let array_methods = Object.create(Array.prototype);
+      ARRAY_METHOD.forEach((method) => {
+        array_methods[method] = function () {
+          // 调用原来的方法
+          console.log(`调用的是拦截的${method}方法`);
+
+          // 将数组进行响应化， 对arguments循环reactify
+          for (let i = 0; i < arguments.length; i++) {
+            reactify(arguments[i]); 
+          }
+          
+          let res = Array.prototype[method].apply(this, arguments);
+          return res;
+        };
+      });
+
+      reactify(data);
+
+
+      // 已经将对象改为响应式的了，但是如果直接给对象赋值，赋值另一个对象，那么就不是响应式了，应该怎么办
+      
+    </script>
+  </body>
+</html>

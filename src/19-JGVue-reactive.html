@@ -141,6 +141,10 @@
         this._template = document.querySelector(options.el);
 
         this._parent = this._template.parentNode;
+
+        // 将vue实例传入、折中
+        reactify(this._data,this);
+
         this.mount(); //挂载
       }
 
@@ -165,12 +169,6 @@
         // 使用发布订阅模式，渲染和计算的行为应该交给观察者完成
       };
 
-      /*
-    在真正的Vue中使用了二次提交的设计结构
-    1. 在页面中的DOM和虚拟DOM是一一对应的关系
-    2. 现有AST和数据生成VNode(新，render)
-    3. 将新的VNode 和旧的VNode比较（diff 更新update) 
-    */
 
       // 生成render函数，目的是缓存抽象语法树（用虚拟DOM模拟抽象语法树）
       JGVue.prototype.createRenderFn = function () {
@@ -191,11 +189,96 @@
         let realHTMLDOM = parseVNode(vnode);
         this._parent.replaceChild(
           realHTMLDOM,
-          document.querySelector(options.el)
+          document.querySelector(this._options.el)
         );
         // 这个算法是不负责任的
         // 每次会将页面中的DOM全部替换
       };
+
+      // 响应式化部分
+      function defineReactive(target, key, value, enumerable) {
+        // 函数内部是一个局部作用域，这个value只在函数内使用的变量
+        // 这只是一个简化的版本
+        // 折中处理后， this就是vue实例
+        let that = this;
+        if (
+          typeof value === "object" &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          // 为非数组的引用类型
+          reactify(value, this);
+        }
+
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumberable: !!enumerable,
+
+          get() {
+            console.log(`读取 o的${key}属性 `);
+
+            return value;
+          },
+          set(newVal) {
+            // 模板刷新
+            // vue 实例？ watcher不会有这个问题
+            console.log(`设置 o的${key}属性 `);
+            value = newVal;
+            that.mountComponent();
+
+          },
+        });
+      }
+
+      // 将对象o响应式化
+      function reactify(o, vm) {
+        let keys = Object.keys(o);
+
+        for (let i = 0; i < keys.length; i++) {
+          // 属性名
+          let key = keys[i];
+          let value = o[key];
+
+          if (Array.isArray(value)) {
+            // 是数组
+            // 给数组的方法添加响应式
+            value.__proto__ = array_methods;
+            for (let j = 0; j < value.length; j++) {
+              // TO-DO 如果成员也是数组怎么办？
+              reactify(value[j], vm);
+            }
+          } else {
+            // 对象，或者是指类型
+            defineReactive.call(vm, o, key, value, true);
+          }
+        }
+      }
+
+      // 数组响应化
+      let ARRAY_METHOD = [
+        "push",
+        "pop",
+        "shift",
+        "unshift",
+        "reverse",
+        "sort",
+        "splice",
+      ];
+      let array_methods = Object.create(Array.prototype);
+      ARRAY_METHOD.forEach((method) => {
+        array_methods[method] = function () {
+          // 调用原来的方法
+          console.log(`调用的是拦截的${method}方法`);
+
+          // 将数组进行响应化， 对arguments循环reactify
+          for (let i = 0; i < arguments.length; i++) {
+            reactify(arguments[i]);
+          }
+
+          let res = Array.prototype[method].apply(this, arguments);
+          return res;
+        };
+      });
 
       let app = new JGVue({
         el: "#root",
@@ -203,6 +286,12 @@
           name: "czh",
           age: 26,
           gender: "male",
+          datas: [
+            { info: "好舒服" },
+            { info: "好好舒服" },
+            { info: "好好好舒服" },
+            { info: "好好好好舒服" },
+          ],
         },
       });
     </script>
