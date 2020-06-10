@@ -221,7 +221,8 @@
           },
           set(newVal) {
             console.log(`设置 o的${key}属性 `);
-            value = newVal;
+
+            value = reactify( newVal );
             // vue 实例？ watcher不会有这个问题
             // 模板刷新，{现在是虚假的，只是作为展示}
             that.mountComponent();

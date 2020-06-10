@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // 代理方法，就是要将app._data中的成员给映射到app上
+      // 由于需要在更新数据的时候，更新页面的内容
+      // 所以app._data 访问的成员与app访问的成员应该是同一个成员
+      // app._data已经是响应式对象，只需要让app访问的成员去访问app._data
+
+      // app.name 转换为app._data.name
+      // app.xxx 转换为app._data.xxx
+
+      // Vue中，引入了一个函数，proxy(target, src, prop )来解决这个问题
+      // 将target的操作映射到src.prop上
+      // 这是因为当时没有proxy(es6)语法，所以采用这种方式
+
+      // 响应式化部分
+      function defineReactive(target, key, value, enumerable) {
+        // 函数内部是一个局部作用域，这个value只在函数内使用的变量
+        // 这只是一个简化的版本
+        // 折中处理后， this就是vue实例
+        let that = this;
+        if (
+          typeof value === "object" &&
+          value != null &&
+          !Array.isArray(value)
+        ) {
+          // 为非数组的引用类型
+          reactify(value, this);
+        }
+
+        Object.defineProperty(target, key, {
+          configurable: true,
+          enumberable: !!enumerable,
+
+          get() {
+            console.log(`读取 o的${key}属性 `);
+
+            return value;
+          },
+          set(newVal) {
+            console.log(`设置 o的${key}属性 `);
+
+            value = reactify(newVal);
+            // vue 实例？ watcher不会有这个问题
+            // 模板刷新，{现在是虚假的，只是作为展示}
+            that.mountComponent();
+          },
+        });
+      }
+
+      // 将对象o响应式化
+      
+      function reactify(o, vm) {
+        let keys = Object.keys(o);
+
+        for (let i = 0; i < keys.length; i++) {
+          // 属性名
+          let key = keys[i];
+          let value = o[key];
+
+          if (Array.isArray(value)) {
+            // 是数组
+            // 给数组的方法添加响应式
+            value.__proto__ = array_methods;
+            for (let j = 0; j < value.length; j++) {
+              // TO-DO 如果成员也是数组怎么办？
+              reactify(value[j], vm);
+            }
+          } else {
+            // 对象，或者是指类型
+            defineReactive.call(vm, o, key, value, true);
+          }
+          // 只需要在 reactify添加proxy。
+          // 在reactify里的代码会是递归的
+          // 如果在这里将属性映射到Vue实例上，那么就表示Vue实例可以是用属性key
+          // data:{name:'czh',child: {name:'ccc'}}
+          // 此处的属性name会被 data.child.name 覆盖，因为递归的存在
+        }
+      }
+
+      // 之前的reactify方法不行了，需要一个新的方法  Observe
+      // 在这个方法中，对这个属性进行处理
+      // 可以将这个方法封装到initData方法中
+
+    </script>
+  </body>
+</html>

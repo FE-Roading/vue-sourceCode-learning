@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      /*
+    发布订阅模式
+    目标: 解耦, 让各个模块之间没有紧密的联系
+    现在的处理办法是 属性在更新的 时候 调用 mountComponent 方法. 
+    问题: mountComponent 更新的是什么??? (现在) 全部的页面 -> 当前虚拟 DOM 对应的页面 DOM
+    在Vue中,整个的更新是按照组件为单位进行判断, 以节点为单位进行更新.
+
+    - 如果代码中没有自定义组件, 那么在比较算法的时候, 我们会将全部的模板 对应的 虚拟 DOM 进行比较.
+    - 如果代码中含有自定义组件, 那么在比较算法的时候, 就会判断更新的是哪一些组件中的属性, 只会判断更新数据的组件, 其他组件不会更新.
+
+    复杂的页面是有很多组件构成. 每一个属性要更新的都要调用 更新的方法?
+    目标：如果修改了什么属性，就尽可能只更新这些属性对应的页面DOM
+
+    发布订阅模式就来完成这个目标 ：解耦
+
+    例子: 预售可能一个东西没有现货, 告诉老板, 如果东西到了 就告诉我. 
+
+    老板就是发布者
+    订阅什么东西作为中间媒介
+    我就是订阅者
+
+    使用代码的结构来描述:
+
+    1. 老板提供一个 账簿( 数组 )
+    2. 我可以根据需求订阅我的商品( 老板要记录下 谁 定了什么东西, 在数组中存储 某些东西 )
+    3. 等待, 可以做其他的事情
+    4. 当货品来到的时候, 老板就查看 账簿, 挨个的打电话 ( 遍历数组, 取出数组的元素来使用 )
+
+    实际上就是事件模型
+
+    1. 有一个 event 对象
+    2. on, off, emit 方法
+
+    实现事件模型, 思考怎么用?
+
+    1. event 是一个全局对象
+    2. event.on( '事件名', 处理函数 ), 订阅事件
+      1. 事件可以连续订阅
+      2. 可以移除: event.off()
+          1. 移除所有
+          2. 移除某一个类型的事件
+          3. 移除某一个类型的某一个处理函数
+    3. 写别的代码 
+    4. event.emit( '事件名', 参数 ), 先前注册的事件处理函数就会依次调用
+    */
+      // event.on('click', () => {});
+      // event.on('click', () => {});
+      // event.on('click', () => {});
+
+      // event.on('show', () => {});
+      // event.on('show', () => {});
+      // event.on('show', () => {});
+      // // 别的事情
+      // event.emit('click');
+
+      //全局的event对象，提供on，off，emit方法
+      var event = (function () {
+        var eventObjs = {};
+        // 初始化时，  eventObjs为空
+        return {
+          // 注册事件， 可以连续注册，可以注册多个事件，
+          on: function (type, handler) {
+            (eventObjs[type] || (eventObjs[type] = [])).push(handler);
+          },
+          // 移除事件，
+          // -如果没有参数，移除所有事件，
+          // -如果只带有事件名参数，移除这个事件名下所有时间
+          // -如果带有两个参数，那么就表示移除某一个事件的具体处理函数
+          off: function (type, handler) {
+            if (arguments.length == 0) {
+              // 没有参数，移除所有事件
+              eventObjs = {};
+            } else if (arguments.length == 1) {
+              // 只有事件类型，移除该事件类型的所有函数
+              eventObjs[type] = [];
+            } else if (arguments.length == 2) {
+              // 移除type时间的handler处理函数
+              // 使用循环
+              let _events = eventObjs[type];
+              // 本身不存在
+              if (!_events) {
+                return;
+              } else {
+                // 倒着循环，数组的序号不会受到影响
+                for (let i = _events.length - 1; i >= 0; i--) {
+                  if (_events[i] === handler) {
+                    _events.splice(i, 1);
+                  }
+                }
+              }
+            }
+          },
+          // 发射事件，触发事件，包装参数传递给事件处理函数
+          emit: function (type) {
+            // 获得除了type以外的所有参数,返回的是数组
+            let args = Array.prototype.slice.call(arguments, 1);
+            let _events = eventObjs[type];
+            if (!_events) {
+              return;
+            }
+            for (let i = 0; i < _events.length; i++) {
+              // 如果要绑定上下文，就需要使用call或apply
+              _events[i].apply(null, args);
+            }
+          },
+        };
+      })();
+
+      // 发布订阅模式（形式不局限于函数，形式可以多样化，可以是对象等）
+      // 1中间的全局的容器，用来存储可以被触发的东西(函数，对象) 
+      // 2 需要一个方法，可以往容器中传入东西（函数， 对象）
+      // 3 需要一个方法，可以将容器中的东西取出来使用（函数调用，对象的方法调用）
+    </script>
+
+    <script>
+      // 注册事件
+      // 订阅
+      // 无法移除的函数
+      event.on("click", () => {
+        console.log("第一个click事件");
+      });
+      event.on("click", () => {
+        console.log("第二个click事件");
+      });
+      event.on("click", () => {
+        console.log("第三个click事件");
+      });
+      event.on("click", () => {
+        console.log("第四个click事件");
+      });
+
+      console.log(1);
+      console.log(1);
+      console.log(1);
+      console.log(1);
+
+      function f() {
+        // 发布
+        event.emit("click");
+      }
+
+      // javascript中基本类型是比较值， 引用类型是比较地址
+      // 引用类型与基本类型，是将其转换为基本类型再比较
+      // 如果是‘===’ 严格等于是不转换比较
+      //
+    </script>
+  </body>
+</html>

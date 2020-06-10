@@ -139,12 +139,9 @@
         this._data = options.data;
         // vue是字符串，这里是DOM
         this._template = document.querySelector(options.el);
-
         this._parent = this._template.parentNode;
-
-        // 将vue实例传入、折中
-        reactify(this._data,this);
-
+        // 将data进行响应式装换，进行代理
+        this.initData();
         this.mount(); //挂载
       }
 
@@ -168,7 +165,6 @@
         // this.update(this.render())
         // 使用发布订阅模式，渲染和计算的行为应该交给观察者完成
       };
-
 
       // 生成render函数，目的是缓存抽象语法树（用虚拟DOM模拟抽象语法树）
       JGVue.prototype.createRenderFn = function () {
@@ -216,21 +212,26 @@
 
           get() {
             console.log(`读取 o的${key}属性 `);
-
             return value;
           },
           set(newVal) {
             console.log(`设置 o的${key}属性 `);
-            value = newVal;
+
+            // 这个是暂时的，不安全的
+            if (typeof newVal === "object" && newVal != null) {
+              value = reactify(newVal);
+            } else {
+              value = newVal;
+            }
             // vue 实例？ watcher不会有这个问题
             // 模板刷新，{现在是虚假的，只是作为展示}
             that.mountComponent();
-
           },
         });
       }
 
       // 将对象o响应式化
+      // 是将对象的属性响应式化，并没有直接响应式化对象本身
       function reactify(o, vm) {
         let keys = Object.keys(o);
 
@@ -253,6 +254,55 @@
           }
         }
       }
+
+      JGVue.prototype.initData = function () {
+        // 遍历this._data的成员，将属性转换为响应式，将直接属性（非递归属性）代理到实例上
+        let keys = Object.keys(this._data);
+        // 响应式化
+        for (let i = 0; i < keys.length; i++) {
+          // 这里将对象 this._data[keys[i]]变成响应式
+          reactify(this._data, this);
+        }
+        // 代理
+        for (let i = 0; i < keys.length; i++) {
+          // 这里将this._data[keys[i]] 映射到this[keys[i]]上
+          // 让this提供keys[i] 这个属性
+          // 访问这个属性时，相当于在访问this._data属性
+          proxy(this, "_data", keys[i]);
+        } 
+        /** 将 某一个对象的属性访问 映射到 对象的某一属性成员上 */
+        /*
+        解释proxy
+        app._data.name
+        vue 设计，不希望访问_开头的额数据
+        vue中一个规则
+        _开头的数据是私有数据
+        $开头的事只读数据
+        */
+        /*
+        举个例子
+        var o1 = {name:'zhangsan'};
+        // 有一个对象o2，在访问o2.name的时候想要访问的是 o1.name
+        Object.defineProperty(o2, 'name', {
+          get() {
+            return o1.name
+          }
+        })
+        */
+        function proxy(target, prop, key) {
+          Object.defineProperty(target, key, {
+            enumerable: true,
+            configurable: true,
+            get() {
+              return target[prop][key];
+            },
+            set(newVal) {
+              target[prop][key] = newVal;
+            },
+          });
+        }
+        
+      };
 
       // 数组响应化
       let ARRAY_METHOD = [
