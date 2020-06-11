@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./decompose/vnode.js"></script>
+    <script src="./decompose/compiler.js"></script>
+    <script src="./decompose/jgvue.js"></script>
+    <script src="./decompose/initrender.js"></script>
+    <script src="./decompose/initdata.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <div>
+        <div title="1">{{name}}</div>
+        <div class="name">{{age}}</div>
+        <div name="123">{{gender}}</div>
+        <ul>
+          <li id="11">1</li>
+          <li>2</li>
+          <li>3</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      let app = new JGVue({
+        el: "#root",
+        data: {
+          name: "czh",
+          age: 26,
+          gender: "male",
+          children: [
+            { info: "好舒服" },
+            { info: "好好舒服" },
+            { info: "好好好舒服" },
+            { info: "好好好好舒服" },
+          ],
+        },
+      });
+    </script>
+  </body>
+</html>

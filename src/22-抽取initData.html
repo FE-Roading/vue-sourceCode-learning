@@ -269,9 +269,10 @@
           // 让this提供keys[i] 这个属性
           // 访问这个属性时，相当于在访问this._data属性
           proxy(this, "_data", keys[i]);
-        } 
-        /** 将 某一个对象的属性访问 映射到 对象的某一属性成员上 */
-        /*
+        }
+      };
+      /** 将 某一个对象的属性访问 映射到 对象的某一属性成员上 */
+      /*
         解释proxy
         app._data.name
         vue 设计，不希望访问_开头的额数据
@@ -279,7 +280,7 @@
         _开头的数据是私有数据
         $开头的事只读数据
         */
-        /*
+      /*
         举个例子
         var o1 = {name:'zhangsan'};
         // 有一个对象o2，在访问o2.name的时候想要访问的是 o1.name
@@ -289,20 +290,19 @@
           }
         })
         */
-        function proxy(target, prop, key) {
-          Object.defineProperty(target, key, {
-            enumerable: true,
-            configurable: true,
-            get() {
-              return target[prop][key];
-            },
-            set(newVal) {
-              target[prop][key] = newVal;
-            },
-          });
-        }
-        
-      };
+      // 代理函数
+      function proxy(target, prop, key) {
+        Object.defineProperty(target, key, {
+          enumerable: true,
+          configurable: true,
+          get() {
+            return target[prop][key];
+          },
+          set(newVal) {
+            target[prop][key] = newVal;
+          },
+        });
+      }
 
       // 数组响应化
       let ARRAY_METHOD = [
